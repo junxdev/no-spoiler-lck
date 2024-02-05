@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>no spoiler lck</title>
+    <link href="./index.css" rel="stylesheet" />
+  </head>
+  <body>
+    <script src="https://www.youtube.com/iframe_api" async></script>
+    <!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
+    <h1>Player</h1>
+    <section class="player">
+      <div class="frame"></div>
+      <div class="player-cover" />
+    </section>
+
+    <script>
+      var youtube;
+      var player = document.querySelector(".player");
+      var frame = document.querySelector(".frame");
+      var cover = document.querySelector(".player-cover");
+
+      var ready = false;
+      var done = false;
+
+      function onYouTubeIframeAPIReady() {
+        console.log(YT.PlayerState);
+        youtube = new YT.Player(frame, {
+          height: "100%",
+          width: "100%",
+          videoId: "VYgFfeucZmU",
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+          },
+        });
+      }
+
+      function onPlayerReady(event) {
+        console.log(frame);
+        console.log(document.querySelector("iframe"));
+        console.log(youtube);
+        youtube
+          .getIframe()
+          .addEventListener(
+            "fullscreenchange",
+            function onFullscreenChange(event) {
+              document.exitFullscreen();
+            }
+          );
+        ready = true;
+      }
+
+      function onPlayerStateChange(event) {
+        switch (event.data) {
+          case YT.PlayerState.PLAYING:
+            player.dataset.player = false;
+            break;
+          case YT.PlayerState.ENDED:
+            player.dataset.player = true;
+            break;
+        }
+      }
+
+      function stopVideo() {
+        youtube.stopVideo();
+      }
+
+      cover.addEventListener("click", function onClickCover() {
+        if (youtube.getPlayerState() != YT.PlayerState.PLAYING) {
+          youtube.playVideo();
+        } else {
+          youtube.pauseVideo();
+        }
+      });
+
+      cover.addEventListener("dblclick", function onClickCover() {
+        player.requestFullscreen();
+      });
+    </script>
+  </body>
+</html>
