@@ -96,17 +96,37 @@
         }
       }
 
+      function fullscreen() {
+        if (document.fullscreen) {
+          if (player.exitFullscreen) {
+            player.exitFullscreen();
+          } else if (player.mozCancelFullScreen) {
+            player.mozCancelFullScreen();
+          } else if (player.msExitFullscreen) {
+            player.msExitFullscreen();
+          } else if (player.webkitExitFullscreen) {
+            player.webkitExitFullscreen();
+          }
+        } else {
+          if (player.requestFullscreen) {
+            player.requestFullscreen();
+          } else if (player.mozRequestFullScreen) {
+            player.mozRequestFullScreen();
+          } else if (player.msRequestFullscreen) {
+            player.msRequestFullscreen();
+          } else if (player.webkitRequestFullscreen) {
+            player.webkitRequestFullscreen();
+          }
+        }
+      }
+
       cover.addEventListener("click", function onClickCover(e) {
         // TODO: prevents click event when dblclick
         play();
       });
 
       player.addEventListener("dblclick", function onClickCover(e) {
-        if (document.fullscreen) {
-          document.exitFullscreen();
-        } else {
-          player.requestFullscreen();
-        }
+        fullscreen();
       });
 
       player.addEventListener("keydown", function onKeyDown(e) {
@@ -135,11 +155,8 @@
             youtube.isMuted() ? youtube.unMute() : youtube.mute();
             break;
           case "f":
-            if (document.fullscreen) {
-              document.exitFullscreen();
-            } else {
-              player.requestFullscreen();
-            }
+            // TODO: add key event to document to exit fullscreen with f key when fullscreen
+            fullscreen();
             break;
         }
         e.stopPropagation();
