@@ -6,28 +6,62 @@
   </head>
   <body>
     <script src="https://www.youtube.com/iframe_api" async></script>
-    <!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
     <h1>Player</h1>
-    <section class="player">
+    <section class="player" data-player-state="-1" tabindex="-1">
       <div class="frame"></div>
       <div class="player-cover" />
     </section>
-
     <script>
+      var videoId = "VYgFfeucZmU";
+
+      var visiblePlayerStates = [];
+      var coverColor = "rgb(0, 0, 0)";
+      var transparentColor = "rgba(0, 0, 0, 0)";
+      var titleHeight = 56.0;
+      var fullscreenTitleHeight = 60.2;
+      var ratio = 0.5625; //  1280 * 720
+      var seekAmount = 5.0;
+      var volumeAmount = 10.0;
+      var volumeMax = 100.0;
+      var volumeMin = 0.0;
+
       var youtube;
       var player = document.querySelector(".player");
       var frame = document.querySelector(".frame");
       var cover = document.querySelector(".player-cover");
 
-      var ready = false;
-      var done = false;
+      const playerResizeObserver = new ResizeObserver(function onResizePlayer(
+        entries
+      ) {
+        const playerState = youtube?.getPlayerState();
+
+        if (playerState && !visiblePlayerStates.includes(playerState)) return;
+
+        const { width, height } = entries[0].contentRect;
+        const coverHeight = document.fullscreen
+          ? fullscreenTitleHeight
+          : titleHeight;
+        const topCoverHeight = `${coverHeight}px`;
+        const h = height - coverHeight * 2;
+        const w = h / ratio;
+        const bottomHeight = `${height - coverHeight}px`;
+
+        frame.style.width = `${w}px`;
+        cover.style.backgroundImage = `linear-gradient(to bottom, ${coverColor} ${topCoverHeight}, ${transparentColor} ${topCoverHeight} ${bottomHeight}, ${coverColor} ${bottomHeight})`;
+      });
+
+      playerResizeObserver.observe(player);
 
       function onYouTubeIframeAPIReady() {
-        console.log(YT.PlayerState);
+        visiblePlayerStates.push(
+          YT.PlayerState.PLAYING,
+          YT.PlayerState.PAUSED,
+          YT.PlayerState.BUFFERING
+        );
         youtube = new YT.Player(frame, {
           height: "100%",
           width: "100%",
-          videoId: "VYgFfeucZmU",
+          videoId,
           events: {
             onReady: onPlayerReady,
             onStateChange: onPlayerStateChange,
@@ -36,45 +70,79 @@
       }
 
       function onPlayerReady(event) {
-        console.log(frame);
-        console.log(document.querySelector("iframe"));
-        console.log(youtube);
-        youtube
-          .getIframe()
-          .addEventListener(
-            "fullscreenchange",
-            function onFullscreenChange(event) {
-              document.exitFullscreen();
-            }
-          );
-        ready = true;
+        frame = youtube.getIframe();
+        // prevent to be focused by tab key
+        frame.tabIndex = -1;
       }
 
       function onPlayerStateChange(event) {
-        switch (event.data) {
-          case YT.PlayerState.PLAYING:
-            player.dataset.player = false;
-            break;
-          case YT.PlayerState.ENDED:
-            player.dataset.player = true;
-            break;
-        }
+        const playedFirstTime =
+          player.dataset.playerState == YT.PlayerState.UNSTARTED &&
+          event.data == YT.PlayerState.BUFFERING;
+        if (playedFirstTime) return;
+
+        player.dataset.playerState = event.data;
       }
 
       function stopVideo() {
         youtube.stopVideo();
       }
 
-      cover.addEventListener("click", function onClickCover() {
+      function play() {
         if (youtube.getPlayerState() != YT.PlayerState.PLAYING) {
           youtube.playVideo();
         } else {
           youtube.pauseVideo();
         }
+      }
+
+      cover.addEventListener("click", function onClickCover(e) {
+        // TODO: prevents click event when dblclick
+        play();
       });
 
-      cover.addEventListener("dblclick", function onClickCover() {
-        player.requestFullscreen();
+      player.addEventListener("dblclick", function onClickCover(e) {
+        if (document.fullscreen) {
+          document.exitFullscreen();
+        } else {
+          player.requestFullscreen();
+        }
+      });
+
+      player.addEventListener("keydown", function onKeyDown(e) {
+        switch (e.key) {
+          case " ":
+          case "Enter":
+            play();
+            break;
+          case "ArrowRight":
+            youtube.seekTo(youtube.getCurrentTime() + seekAmount, true);
+            break;
+          case "ArrowLeft":
+            youtube.seekTo(youtube.getCurrentTime() - seekAmount, true);
+            break;
+          case "ArrowUp":
+            youtube.setVolume(
+              Math.max(youtube.getVolume() + volumeAmount, volumeMin)
+            );
+            break;
+          case "ArrowDown":
+            youtube.setVolume(
+              Math.min(youtube.getVolume() - volumeAmount, volumeMax)
+            );
+            break;
+          case "m":
+            youtube.isMuted() ? youtube.unMute() : youtube.mute();
+            break;
+          case "f":
+            if (document.fullscreen) {
+              document.exitFullscreen();
+            } else {
+              player.requestFullscreen();
+            }
+            break;
+        }
+        e.stopPropagation();
       });
     </script>
   </body>
